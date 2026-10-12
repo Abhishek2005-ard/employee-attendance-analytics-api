@@ -28,7 +28,7 @@ The `department_summary` pipeline starts on `employees` filtered by `joined_on <
 
 ## 5. GET /admin/explain/{endpoint}
 
-The endpoint name is validated against a hardcoded `frozenset` allowlist of five names (exactly the `enum` in `openapi.yaml`). No user-supplied pipeline or query is ever executed raw. Each branch re-builds the *same* match filter / pipeline the live endpoint uses (using the same parameter parsing) and calls `.explain("executionStats")` (for `find`) or `aggregate(..., explain=True)` (for aggregation pipelines), then returns `{ endpoint, collection, explain }` after converting non-JSON-serialisable BSON types via `_bson_clean`.
+The endpoint name is validated against a hardcoded `frozenset` allowlist of five names (exactly the `enum` in `openapi.yaml`). No user-supplied pipeline or query is ever executed raw. Each branch re-builds the *same* match filter / pipeline the live endpoint uses (using the same parameter parsing) and calls `db.command("explain", ..., verbosity="executionStats")` for both `find` and `aggregate` pipelines, then returns `{ endpoint, collection, explain }` after converting non-JSON-serialisable BSON types via `_bson_clean`.
 
 ## 6. One thing you would change for 100x data
 

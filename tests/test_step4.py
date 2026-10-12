@@ -203,3 +203,58 @@ def test_department_trend_errors():
 
     # range > 92 days -> 422
     assert client.get("/analytics/departments/Engineering/trend?from=2026-01-01&to=2026-05-01").status_code == 422
+
+
+# --------------------------------------------------------------------------- #
+# 5. Admin Explain Endpoint Tests
+# --------------------------------------------------------------------------- #
+def test_admin_explain_endpoints():
+    endpoints = [
+        ("/admin/explain/attendance_list?emp_code=EMP0001&date_from=2026-07-01&date_to=2026-07-31", "attendance_list", "attendance_logs"),
+        ("/admin/explain/employee_monthly?emp_code=EMP0001&month=2026-07", "employee_monthly", "attendance_logs"),
+        ("/admin/explain/department_summary?month=2026-07&department=Engineering", "department_summary", "employees"),
+        ("/admin/explain/late_leaderboard?month=2026-07", "late_leaderboard", "attendance_logs"),
+        ("/admin/explain/department_trend?department=Engineering&from=2026-07-01&to=2026-07-15", "department_trend", "attendance_logs"),
+    ]
+    for url, ep, coll in endpoints:
+        res = client.get(url)
+        assert res.status_code == 200, f"Failed for {url}: {res.text}"
+        data = res.json()
+        assert data["endpoint"] == ep
+        assert data["collection"] == coll
+        assert "explain" in data
+        assert isinstance(data["explain"], dict)
+
+        # Check for IXSCAN and absence of COLLSCAN
+        def has_stage(obj, stage_name):
+            if isinstance(obj, dict):
+                if obj.get("stage") == stage_name:
+                    return True
+                return any(has_stage(v, stage_name) for v in obj.values())
+            if isinstance(obj, list):
+                return any(has_stage(i, stage_name) for i in obj)
+            return False
+
+        assert has_stage(data["explain"], "IXSCAN"), f"Expected IXSCAN for {ep}"
+        assert not has_stage(data["explain"], "COLLSCAN"), f"Unexpected COLLSCAN for {ep}"
+
+
+def test_admin_explain_validations():
+    # Invalid endpoint name -> 422
+    assert client.get("/admin/explain/invalid_endpoint").status_code == 422
+
+    # Missing parameters for employee_monthly -> 422
+    assert client.get("/admin/explain/employee_monthly").status_code == 422
+    assert client.get("/admin/explain/employee_monthly?emp_code=EMP0001").status_code == 422
+
+    # Missing month for department_summary -> 422
+    assert client.get("/admin/explain/department_summary").status_code == 422
+
+    # Missing month for late_leaderboard -> 422
+    assert client.get("/admin/explain/late_leaderboard").status_code == 422
+
+    # Missing department or date range for department_trend -> 422
+    assert client.get("/admin/explain/department_trend?department=Engineering").status_code == 422
+    assert client.get("/admin/explain/department_trend?from=2026-07-01&to=2026-07-10").status_code == 422
+    assert client.get("/admin/explain/department_trend?department=Engineering&from=2026-07-10&to=2026-07-01").status_code == 422
+

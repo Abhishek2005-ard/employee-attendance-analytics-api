@@ -21,5 +21,5 @@ Also note anything you looked at and decided was **not** a defect, and why:
 * **Identification by `emp_code` instead of `_id`**: Intentional per contract; `_id` must never be exposed.
 * **No authentication or authorization headers**: Explicitly omitted per assignment scope.
 * **Absence of DELETE or PUT endpoints**: The API contract specifies only punch-in, punch-out, and PATCH regularization.
-* **`aggregate(..., explain=True)` vs `command("aggregate", ...)` explain verbosity**: For aggregation pipelines, PyMongo's `aggregate(explain=True)` returns execution stats equivalent to `executionStats` verbosity; the raw document is returned as-is per the contract's `additionalProperties: true` schema.
+* **Explain verbosity**: `db.command("explain", ..., verbosity="executionStats")` is used for both `find` and aggregation pipelines so that detailed execution metrics (docsExamined, keysExamined, nReturned, executionTimeMillis) are explicitly captured; the raw document is returned as-is per the contract's `additionalProperties: true` schema.
 * **`department_summary` COLLSCAN on `employees.joined_on`**: An index on `joined_on` was added at startup; on the grader's dataset this converts to an IXSCAN for `joined_on <= month_end`. The `$lookup` into `attendance_logs` uses the `(emp_code, date)` index via `$$emp` variable binding.
